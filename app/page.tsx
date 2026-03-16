@@ -16,6 +16,7 @@ import StepBadge from "@/components/StepBadge";
 import SliderRow from "@/components/SliderRow";
 import {
   generateScale,
+  generateDarkScale,
   detectAnchorStep,
   detectEdgeCase,
   suggestName,
@@ -173,8 +174,9 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
   function handleAdd() {
     const hex = normalizeHex(form.hexInput);
     if (!isValidColor(hex)) return;
-    const stops   = generateScale(hex, stopCount, new Map(), form.anchorStep);
-    const warning = detectEdgeCase(hex);
+    const stops     = generateScale(hex, stopCount, new Map(), form.anchorStep);
+    const darkStops = generateDarkScale(hex, stopCount, new Map(), form.anchorStep);
+    const warning   = detectEdgeCase(hex);
     onAdd({
       id:        uuid(),
       name:      form.name.trim() || suggestName(hex),
@@ -182,6 +184,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
       baseColor: hex,
       baseStep:  form.anchorStep,
       stops,
+      darkStops,
       warning,
     }, form.saturation);
   }
@@ -311,6 +314,7 @@ type Item =
 export default function Home() {
   const [items, setItems]             = useState<Item[]>(() => [{ kind: "form", data: makeDefaultForm(10) }]);
   const [stopCount]                   = useState<StopCount>(10);
+  const [darkMode, setDarkMode]       = useState(false);
   const [toast, setToast]             = useState<string | null>(null);
   const [exportOpen, setExportOpen]   = useState(false);
   const toastTimer                    = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -343,11 +347,18 @@ export default function Home() {
       setItems((prev) => {
         const forms = prev.filter((i) => i.kind === "form");
         return [
-          ...saved.palettes.map((p) => ({ kind: "palette" as const, data: p })),
+          ...saved.palettes.map((p) => ({
+            kind: "palette" as const,
+            // Migrate old palettes that don't have darkStops yet
+            data: p.darkStops?.length
+              ? p
+              : { ...p, darkStops: generateDarkScale(p.baseColor, stopCount, new Map(), p.baseStep) },
+          })),
           ...forms,
         ];
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -444,8 +455,13 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-black">
-      <Header hasPalettes={palettes.length > 0} onExport={() => setExportOpen(true)} />
+    <div className={`min-h-screen transition-colors ${darkMode ? "bg-black text-white" : "bg-[#FAFAFA] text-black"}`}>
+      <Header
+        hasPalettes={palettes.length > 0}
+        darkMode={darkMode}
+        onToggleDark={() => setDarkMode((d) => !d)}
+        onExport={() => setExportOpen(true)}
+      />
 
       <main className="pt-[96px] min-h-screen">
         <div className="flex gap-5 px-10 py-10 overflow-x-auto min-h-[calc(100vh-96px)] items-start">
@@ -456,6 +472,7 @@ export default function Home() {
                 key={item.data.id}
                 palette={item.data}
                 stopCount={stopCount}
+                darkMode={darkMode}
                 onUpdate={handleUpdate}
                 onRemove={handleRemove}
                 onCopy={showToast}
@@ -481,10 +498,14 @@ export default function Home() {
           {/* + button — always visible */}
           <button
             onClick={handleAddForm}
-            className="flex-shrink-0 w-[320px] border border-[#E7E7E7] rounded-3xl flex items-center justify-center h-[72px] hover:border-black/20 hover:bg-[#F7F7F7] transition-all group"
+            className={`flex-shrink-0 w-[320px] border rounded-3xl flex items-center justify-center h-[72px] transition-all group ${
+              darkMode
+                ? "border-[#2c2c2c] hover:border-[#3c3c3c] hover:bg-[#111]"
+                : "border-[#E7E7E7] hover:border-black/20 hover:bg-[#F7F7F7]"
+            }`}
             title="Add another color"
           >
-            <span className="text-black/30 group-hover:text-black/60 transition-colors">
+            <span className={`transition-colors ${darkMode ? "text-white/20 group-hover:text-white/50" : "text-black/30 group-hover:text-black/60"}`}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
               </svg>
@@ -496,13 +517,13 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 h-[48px] flex items-center justify-end px-10 pointer-events-none">
-        <p className="text-[13px] text-black/40 pointer-events-auto">
+        <p className={`text-[13px] pointer-events-auto transition-colors ${darkMode ? "text-white/30" : "text-black/40"}`}>
           Powered by{" "}
           <a
             href="https://www.linkedin.com/company/doze-collab/posts/?viewAsMember=true"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline underline-offset-2 hover:text-black/70 transition-colors"
+            className={`underline underline-offset-2 transition-colors ${darkMode ? "hover:text-white/60" : "hover:text-black/70"}`}
           >
             Doze Ltda
           </a>

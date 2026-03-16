@@ -23,7 +23,8 @@ export type Palette = {
   type: PaletteType;
   baseColor: string;          // "#FF3B30" — the raw input
   baseStep: number;           // which stop the base color anchors to (default 500)
-  stops: ColorStop[];
+  stops: ColorStop[];         // light mode scale
+  darkStops: ColorStop[];     // dark mode scale (boosted chroma at mid-range)
   warning?: EdgeCaseWarning;  // set when base color is extreme
 };
 

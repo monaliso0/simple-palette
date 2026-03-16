@@ -1,5 +1,9 @@
 import type { Palette, ExportFormat } from "./types";
 
+// ─── Export mode ──────────────────────────────────────────────────────────────
+
+export type ExportMode = "light" | "dark" | "both";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** "Brand Blue" → "brand-blue" */
@@ -11,60 +15,89 @@ function slug(name: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
-/** "#FF3B30" → { r, g, b, a } (0–1 range, for Figma) */
-function hexToFigmaRgb(hex: string): { r: number; g: number; b: number; a: number } {
-  const clean = hex.replace("#", "");
-  return {
-    r: parseInt(clean.slice(0, 2), 16) / 255,
-    g: parseInt(clean.slice(2, 4), 16) / 255,
-    b: parseInt(clean.slice(4, 6), 16) / 255,
-    a: 1,
-  };
-}
-
 // ─── Format generators ────────────────────────────────────────────────────────
 
-function toJSON(palettes: Palette[]): string {
-  const output: Record<string, Record<string, string>> = {};
+function toJSON(palettes: Palette[], mode: ExportMode): string {
+  if (mode === "both") {
+    const light: Record<string, Record<string, string>> = {};
+    const dark:  Record<string, Record<string, string>> = {};
+    for (const palette of palettes) {
+      const key = slug(palette.name);
+      light[key] = {};
+      dark[key]  = {};
+      for (const stop of palette.stops)      light[key][String(stop.step)] = stop.hex;
+      for (const stop of palette.darkStops)  dark[key][String(stop.step)]  = stop.hex;
+    }
+    return JSON.stringify({ color: { light, dark } }, null, 2);
+  }
 
+  const stops = (p: Palette) => mode === "dark" ? p.darkStops : p.stops;
+  const output: Record<string, Record<string, string>> = {};
   for (const palette of palettes) {
     const key = slug(palette.name);
     output[key] = {};
-    for (const stop of palette.stops) {
-      output[key][String(stop.step)] = stop.hex;
-    }
+    for (const stop of stops(palette)) output[key][String(stop.step)] = stop.hex;
   }
-
   return JSON.stringify({ color: output }, null, 2);
 }
 
-function toCSS(palettes: Palette[]): string {
-  const lines: string[] = [":root {"];
+function toCSS(palettes: Palette[], mode: ExportMode): string {
+  const lightLines: string[] = [":root {"];
+  const darkLines:  string[] = ["@media (prefers-color-scheme: dark) {", "  :root {"];
 
   for (const palette of palettes) {
     const key = slug(palette.name);
-    lines.push(`  /* ${palette.name} */`);
-    for (const stop of palette.stops) {
-      lines.push(`  --color-${key}-${stop.step}: ${stop.hex};`);
+
+    if (mode !== "dark") {
+      lightLines.push(`  /* ${palette.name} */`);
+      for (const stop of palette.stops) lightLines.push(`  --color-${key}-${stop.step}: ${stop.hex};`);
+      lightLines.push("");
     }
-    lines.push("");
+
+    if (mode !== "light") {
+      darkLines.push(`    /* ${palette.name} */`);
+      for (const stop of palette.darkStops) darkLines.push(`    --color-${key}-${stop.step}: ${stop.hex};`);
+      darkLines.push("");
+    }
   }
 
-  // Remove trailing blank line
-  if (lines[lines.length - 1] === "") lines.pop();
-  lines.push("}");
+  if (mode === "light") {
+    if (lightLines[lightLines.length - 1] === "") lightLines.pop();
+    lightLines.push("}");
+    return lightLines.join("\n");
+  }
 
-  return lines.join("\n");
+  if (mode === "dark") {
+    if (darkLines[darkLines.length - 1] === "") darkLines.pop();
+    darkLines.push("  }");
+    darkLines.push("}");
+    return darkLines.join("\n");
+  }
+
+  // both
+  if (lightLines[lightLines.length - 1] === "") lightLines.pop();
+  lightLines.push("}");
+  if (darkLines[darkLines.length - 1] === "") darkLines.pop();
+  darkLines.push("  }");
+  darkLines.push("}");
+  return [...lightLines, "", ...darkLines].join("\n");
 }
 
-function toTailwind(palettes: Palette[]): string {
-  const colorsEntries = palettes.map((palette) => {
+function toTailwind(palettes: Palette[], mode: ExportMode): string {
+  const colorsEntries: string[] = [];
+
+  for (const palette of palettes) {
     const key = slug(palette.name);
-    const stopsEntries = palette.stops
-      .map((s) => `          ${s.step}: '${s.hex}',`)
-      .join("\n");
-    return `        ${key}: {\n${stopsEntries}\n        },`;
-  });
+
+    if (mode !== "dark") {
+      const stopsEntries = palette.stops.map((s) => `          ${s.step}: '${s.hex}',`).join("\n");
+      colorsEntries.push(`        ${key}: {\n${stopsEntries}\n        },`);
+    }
+    if (mode !== "light") {
+      const stopsEntries = palette.darkStops.map((s) => `          ${s.step}: '${s.hex}',`).join("\n");
+      colorsEntries.push(`        '${key}-dark': {\n${stopsEntries}\n        },`);
+    }
+  }
 
   return [
     `/** @type {import('tailwindcss').Config} */`,
@@ -80,20 +113,30 @@ function toTailwind(palettes: Palette[]): string {
   ].join("\n");
 }
 
-function toFigma(palettes: Palette[]): string {
+function toFigma(palettes: Palette[], mode: ExportMode): string {
   // W3C Design Tokens format — compatible with Tokens Studio for Figma
-  const output: Record<string, Record<string, Record<string, { $value: string; $type: string }>>> = {
-    color: {},
-  };
+  type TokenObj = Record<string, { $value: string; $type: string }>;
+  type Group = Record<string, TokenObj>;
+  const output: Record<string, Group | Record<string, Group>> = { color: {} };
 
-  for (const palette of palettes) {
-    const key = slug(palette.name);
-    output.color[key] = {};
-    for (const stop of palette.stops) {
-      output.color[key][String(stop.step)] = {
-        $value: stop.hex,
-        $type: "color",
-      };
+  if (mode === "both") {
+    const colorGroup = output.color as Record<string, Group>;
+    colorGroup.light = {};
+    colorGroup.dark  = {};
+    for (const palette of palettes) {
+      const key = slug(palette.name);
+      colorGroup.light[key] = {};
+      colorGroup.dark[key]  = {};
+      for (const s of palette.stops)      colorGroup.light[key][String(s.step)] = { $value: s.hex, $type: "color" };
+      for (const s of palette.darkStops)  colorGroup.dark[key][String(s.step)]  = { $value: s.hex, $type: "color" };
+    }
+  } else {
+    const colorGroup = output.color as Group;
+    for (const palette of palettes) {
+      const key   = slug(palette.name);
+      const stops = mode === "dark" ? palette.darkStops : palette.stops;
+      colorGroup[key] = {};
+      for (const s of stops) colorGroup[key][String(s.step)] = { $value: s.hex, $type: "color" };
     }
   }
 
@@ -114,11 +157,11 @@ export const FORMAT_META: Record<
 
 // ─── Main export function ──────────────────────────────────────────────────────
 
-export function generateExport(palettes: Palette[], format: ExportFormat): string {
+export function generateExport(palettes: Palette[], format: ExportFormat, mode: ExportMode = "light"): string {
   switch (format) {
-    case "json":     return toJSON(palettes);
-    case "css":      return toCSS(palettes);
-    case "tailwind": return toTailwind(palettes);
-    case "figma":    return toFigma(palettes);
+    case "json":     return toJSON(palettes, mode);
+    case "css":      return toCSS(palettes, mode);
+    case "tailwind": return toTailwind(palettes, mode);
+    case "figma":    return toFigma(palettes, mode);
   }
 }

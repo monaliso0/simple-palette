@@ -446,6 +446,58 @@ export function getHueGradient(l: number, saturation: number): string {
   return `linear-gradient(90deg, ${stops.join(", ")})`;
 }
 
+// ─── Dark mode scale ──────────────────────────────────────────────────────────
+
+/**
+ * Generates a dark-mode optimized color scale from a base hex.
+ *
+ * Dark backgrounds reduce perceived saturation (simultaneous contrast effect).
+ * This scale boosts chroma for stops near the anchor (±2 positions) so the
+ * mid-range tones remain vivid and visually weighted against dark surfaces.
+ * Light extremes (50–300) and dark extremes (700–900) stay nearly identical
+ * to the light scale since they're used as tints/surfaces, not accents.
+ *
+ * Boost amounts:  anchor ±0 = +30%,  ±1 = +20%,  ±2 = +10%
+ */
+export function generateDarkScale(
+  hex: string,
+  stopCount: StopCount = 10,
+  lockedStops: Map<number, string> = new Map(),
+  anchorOverride?: number
+): ColorStop[] {
+  const lightStops = generateScale(hex, stopCount, lockedStops, anchorOverride);
+
+  const parsed = parse(hex);
+  if (!parsed) return lightStops;
+  const base = oklch(parsed);
+  if (!base) return lightStops;
+
+  const stops = STOP_SETS[stopCount];
+  const anchorStep = (anchorOverride !== undefined && stops.includes(anchorOverride))
+    ? anchorOverride
+    : findAnchorStep(base.l ?? 0.595, stops);
+  const anchorIdx = stops.indexOf(anchorStep);
+
+  return lightStops.map((stop) => {
+    if (lockedStops.has(stop.step)) return stop;
+
+    const stopIdx = stops.indexOf(stop.step);
+    const dist    = Math.abs(stopIdx - anchorIdx);
+    if (dist > 2) return stop;
+
+    const boost = 1 + (0.30 - dist * 0.10); // 1.30 / 1.20 / 1.10
+
+    const sp = parse(stop.hex);
+    if (!sp) return stop;
+    const sc = oklch(sp);
+    if (!sc || sc.h === undefined) return stop;
+
+    const boosted    = clampChroma({ mode: "oklch", l: sc.l ?? 0.5, c: (sc.c ?? 0) * boost, h: sc.h }, "oklch");
+    const newHex     = formatHex(boosted) ?? stop.hex;
+    return { step: stop.step, hex: newHex, isLocked: false, contrast: calcContrast(newHex) };
+  });
+}
+
 // ─── Step-aware lightness adjustment ──────────────────────────────────────────
 
 /**

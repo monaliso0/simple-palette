@@ -6,6 +6,7 @@ import StepBadge from "./StepBadge";
 import SliderRow from "./SliderRow";
 import {
   generateScale,
+  generateDarkScale,
   getColorHue,
   getColorSaturation,
   setHue,
@@ -20,7 +21,7 @@ import {
   getColorLightness,
   HUE_START,
 } from "@/lib/color";
-import type { Palette, StopCount } from "@/lib/types";
+import type { Palette, StopCount, ColorStop } from "@/lib/types";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ type EditState = {
 type PaletteCardProps = {
   palette: Palette;
   stopCount: StopCount;
+  darkMode: boolean;
   onUpdate: (id: string, updates: Partial<Palette>) => void;
   onRemove: (id: string) => void;
   onCopy: (hex: string) => void;
@@ -73,6 +75,7 @@ type PaletteCardProps = {
 export default function PaletteCard({
   palette,
   stopCount,
+  darkMode,
   onUpdate,
   onRemove,
   onCopy,
@@ -204,12 +207,14 @@ export default function PaletteCard({
   // ── Edit: apply (update palette) ─────────────────────────────────────────
   function handleUpdate() {
     if (!edit) return;
-    const hex   = edit.baseColor;
-    const stops = generateScale(hex, stopCount, new Map(), edit.anchorStep);
+    const hex       = edit.baseColor;
+    const stops     = generateScale(hex, stopCount, new Map(), edit.anchorStep);
+    const darkStops = generateDarkScale(hex, stopCount, new Map(), edit.anchorStep);
     onUpdate(palette.id, {
       baseColor: hex,
       baseStep:  edit.anchorStep,
       stops,
+      darkStops,
       name:      edit.name.trim() || suggestName(hex),
     });
     setNameInput(edit.name.trim() || suggestName(hex));
@@ -346,74 +351,22 @@ export default function PaletteCard({
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // VIEW MODE render
+  // VIEW MODE render helpers
   // ─────────────────────────────────────────────────────────────────────────
-  return (
-    <div
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
-      className={`
-        flex-shrink-0 w-[320px] border rounded-3xl p-3 flex flex-col gap-3
-        cursor-grab active:cursor-grabbing select-none transition-all
-        ${isDragOver ? "border-black/20 scale-[0.98] opacity-70" : "border-transparent hover:border-[#E7E7E7]"}
-      `}
-    >
-      {/* ── Header ────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 h-[56px] px-1">
 
-        {/* Name */}
-        {isEditingName ? (
-          <input
-            ref={nameRef}
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onBlur={() => { setIsEditingName(false); commitName(); }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")  { setIsEditingName(false); commitName(); }
-              if (e.key === "Escape") { setIsEditingName(false); setNameInput(palette.name); }
-            }}
-            autoFocus
-            className="flex-1 min-w-0 bg-transparent text-[20px] font-normal tracking-[-0.7px] text-black outline-none border-b border-black/20 pb-0.5"
-          />
-        ) : (
-          <button
-            onClick={() => { setIsEditingName(true); setTimeout(() => nameRef.current?.select(), 0); }}
-            className="flex-1 min-w-0 text-left text-[20px] font-normal tracking-[-0.7px] text-black truncate cursor-text hover:underline underline-offset-2"
-            title="Click to rename"
-          >
-            {palette.name}
-          </button>
-        )}
+  const cardBorder  = darkMode ? "border-[#2c2c2c]" : "border-[#E7E7E7]";
+  const cardHover   = darkMode ? "hover:border-[#3c3c3c]" : "hover:border-[#CCCCCC]";
+  const nameColor   = darkMode ? "text-white" : "text-black";
+  const inputBorder = darkMode ? "border-white/20" : "border-black/20";
+  const iconHoverBg = darkMode ? "hover:bg-[#1c1c1c]" : "hover:bg-[#F0F0F0]";
 
-        {/* Delete — hover:bg-[#F0F0F0] */}
-        <button
-          onClick={() => onRemove(palette.id)}
-          className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-[#F0F0F0] transition-colors"
-          title="Remove palette"
-        >
-          <IconTrash />
-        </button>
-
-        {/* Edit (filter icon) — same hover as delete */}
-        <button
-          onClick={enterEditMode}
-          className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-[#F0F0F0] transition-colors"
-          title="Edit palette"
-        >
-          <IconFilter />
-        </button>
-      </div>
-
-      {/* ── Color rows ────────────────────────────────────────────────── */}
+  function StopRows({ stops, baseStep }: { stops: ColorStop[]; baseStep: number }) {
+    return (
       <div className="flex flex-col overflow-hidden rounded-xl">
-        {palette.stops.map((stop) => {
+        {stops.map((stop) => {
           const textColor = getSwatchTextColor(stop.hex);
-          const isBase    = stop.step === palette.baseStep;
-          const isHovered = hoveredStep === stop.step;
+          const isBase    = stop.step === baseStep;
+          const isHov     = hoveredStep === stop.step;
 
           return (
             <button
@@ -425,17 +378,14 @@ export default function PaletteCard({
               style={{ backgroundColor: stop.hex, color: textColor }}
               title={`Copy ${stop.hex}`}
             >
-              {/* Hex */}
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <span className="opacity-25 text-[14px] tracking-[-0.49px]">#</span>
                 <span className={`text-[14px] tracking-[-0.49px] ${isBase ? "font-semibold" : "font-normal"}`}>
                   {stop.hex.slice(1).toUpperCase()}
                 </span>
               </div>
-
-              {/* Step + copy */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                {isHovered && (
+                {isHov && (
                   <span style={{ color: textColor }} className="opacity-50">
                     <IconCopy />
                   </span>
@@ -448,6 +398,113 @@ export default function PaletteCard({
           );
         })}
       </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // VIEW MODE render
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <div
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`
+        flex-shrink-0 flex gap-2
+        cursor-grab active:cursor-grabbing select-none transition-all
+        ${isDragOver ? "opacity-70 scale-[0.98]" : ""}
+      `}
+    >
+      {/* ── Light column ───────────────────────────────────────────────── */}
+      <div className={`w-[320px] border ${cardBorder} ${cardHover} rounded-3xl p-3 flex flex-col gap-3 transition-colors`}>
+
+        {/* Header */}
+        <div className="flex items-center gap-2 h-[56px] px-1">
+
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            {isEditingName ? (
+              <input
+                ref={nameRef}
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onBlur={() => { setIsEditingName(false); commitName(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter")  { setIsEditingName(false); commitName(); }
+                  if (e.key === "Escape") { setIsEditingName(false); setNameInput(palette.name); }
+                }}
+                autoFocus
+                className={`flex-1 min-w-0 bg-transparent text-[20px] font-normal tracking-[-0.7px] ${nameColor} outline-none border-b ${inputBorder} pb-0.5`}
+              />
+            ) : (
+              <button
+                onClick={() => { setIsEditingName(true); setTimeout(() => nameRef.current?.select(), 0); }}
+                className={`flex-1 min-w-0 text-left text-[20px] font-normal tracking-[-0.7px] ${nameColor} truncate cursor-text hover:underline underline-offset-2`}
+                title="Click to rename"
+              >
+                {palette.name}
+              </button>
+            )}
+            <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md ${darkMode ? "bg-white/10 text-white/40" : "bg-black/5 text-black/35"}`}>
+              Light
+            </span>
+          </div>
+
+          <button
+            onClick={() => onRemove(palette.id)}
+            className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
+            title="Remove palette"
+          >
+            <IconTrash />
+          </button>
+          <button
+            onClick={enterEditMode}
+            className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
+            title="Edit palette"
+          >
+            <IconFilter />
+          </button>
+        </div>
+
+        <StopRows stops={palette.stops} baseStep={palette.baseStep} />
+      </div>
+
+      {/* ── Dark column ────────────────────────────────────────────────── */}
+      {palette.darkStops?.length > 0 && (
+        <div className={`w-[320px] border ${cardBorder} ${cardHover} rounded-3xl p-3 flex flex-col gap-3 transition-colors`}>
+
+          {/* Header */}
+          <div className="flex items-center gap-2 h-[56px] px-1">
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <span className={`text-[20px] font-normal tracking-[-0.7px] ${nameColor} truncate`}>
+                {palette.name}
+              </span>
+              <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md ${darkMode ? "bg-white/10 text-white/40" : "bg-black/5 text-black/35"}`}>
+                Dark
+              </span>
+            </div>
+
+            <button
+              onClick={() => onRemove(palette.id)}
+              className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
+              title="Remove palette"
+            >
+              <IconTrash />
+            </button>
+            <button
+              onClick={enterEditMode}
+              className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
+              title="Edit palette"
+            >
+              <IconFilter />
+            </button>
+          </div>
+
+          <StopRows stops={palette.darkStops} baseStep={palette.baseStep} />
+        </div>
+      )}
     </div>
   );
 }

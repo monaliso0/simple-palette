@@ -1,4 +1,4 @@
-import { generateScale, generateNeutralScale } from "./color";
+import { generateScale, generateDarkScale, generateNeutralScale } from "./color";
 import type { Palette, PaletteType, StopCount, AppState } from "./types";
 
 // ─── Serialized shape (compact — only what can't be recomputed) ───────────────
@@ -60,6 +60,8 @@ export function deserializeState(encoded: string): AppState | null {
         lockedMap.has(s.step) ? { ...s, hex: lockedMap.get(s.step)!, isLocked: true } : s
       );
 
+      const darkStops = generateDarkScale(sp.baseColor, payload.stopCount, lockedMap, sp.baseStep);
+
       return {
         id:        sp.id,
         name:      sp.name,
@@ -67,6 +69,7 @@ export function deserializeState(encoded: string): AppState | null {
         baseColor: sp.baseColor,
         baseStep:  sp.baseStep,
         stops:     stopsWithLocks,
+        darkStops,
       };
     });
 
