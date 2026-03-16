@@ -14,6 +14,8 @@ import {
   getSwatchTextColor,
   suggestName,
   detectAnchorStep,
+  isValidColor,
+  normalizeHex,
   getHueGradient,
   getColorLightness,
   HUE_START,
@@ -265,7 +267,6 @@ export default function PaletteCard({
                   onChange={(e) => {
                     patchEdit({ hexInput: e.target.value });
                     const norm = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
-                    const { isValidColor, normalizeHex } = require("@/lib/color");
                     const n = normalizeHex(norm);
                     if (isValidColor(n)) applyEditColor(n, true);
                     else patchEdit({ hexError: true });
