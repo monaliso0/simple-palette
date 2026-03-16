@@ -28,7 +28,7 @@ export default function Header({ hasPalettes, onExport }: HeaderProps) {
         {/* Figma Plugin — link will be added after approval */}
         <button
           disabled
-          className="h-[56px] px-6 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] opacity-50 cursor-not-allowed"
+          className="h-[48px] px-4 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] opacity-50 cursor-not-allowed"
         >
           Figma Plugin
         </button>
@@ -37,7 +37,7 @@ export default function Header({ hasPalettes, onExport }: HeaderProps) {
         <button
           onClick={onExport}
           disabled={!hasPalettes}
-          className="h-[56px] px-6 rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="h-[48px] px-4 rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Export
         </button>

@@ -227,7 +227,7 @@ export default function PaletteCard({
 
           {/* Color preview */}
           <div
-            className="w-full h-[240px] rounded-xl flex flex-col justify-between px-3 py-6"
+            className="w-full aspect-square rounded-xl flex flex-col justify-between px-3 py-6"
             style={{ backgroundColor: edit.baseColor }}
           >
             {/* Name */}
@@ -315,13 +315,13 @@ export default function PaletteCard({
         <div className="flex gap-2 items-center">
           <button
             onClick={handleCancelEdit}
-            className="h-[56px] w-[156px] flex-shrink-0 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] hover:bg-[#E7E7E7] transition-colors"
+            className="h-[48px] w-[156px] flex-shrink-0 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] hover:bg-[#E7E7E7] transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleUpdate}
-            className="flex-1 h-[56px] rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors"
+            className="flex-1 h-[48px] rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors"
           >
             Atualizar
           </button>

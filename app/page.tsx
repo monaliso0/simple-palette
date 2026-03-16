@@ -201,7 +201,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
 
         {/* Color preview */}
         <div
-          className="w-full h-[240px] rounded-xl flex flex-col justify-between px-3 py-6"
+          className="w-full aspect-square rounded-xl flex flex-col justify-between px-3 py-6"
           style={{ backgroundColor: form.baseColor }}
         >
           {/* Name */}
@@ -284,14 +284,14 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
       <div className="flex gap-2 items-center">
         <button
           onClick={() => onCancel(form.id)}
-          className="h-[56px] w-[156px] flex-shrink-0 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] hover:bg-[#E7E7E7] transition-colors"
+          className="h-[48px] w-[156px] flex-shrink-0 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] hover:bg-[#E7E7E7] transition-colors"
         >
           Cancelar
         </button>
         <button
           onClick={handleAdd}
           disabled={form.hexError || !form.hexInput}
-          className="flex-1 h-[56px] rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex-1 h-[48px] rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Adicionar
         </button>
@@ -481,6 +481,21 @@ export default function Home() {
 
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 h-[48px] flex items-center justify-end px-10 pointer-events-none">
+        <p className="text-[13px] text-black/40 pointer-events-auto">
+          Powered by{" "}
+          <a
+            href="https://www.linkedin.com/company/doze-collab/posts/?viewAsMember=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-black/70 transition-colors"
+          >
+            Doze Ltda
+          </a>
+        </p>
+      </footer>
 
       {toast && <Toast hex={toast} />}
 
