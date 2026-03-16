@@ -62,17 +62,17 @@ type AddFormState = {
   hexError: boolean;
 };
 
-function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?: number): AddFormState {
-  const randomHue  = Math.floor(Math.random() * 360);
+function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?: number, randomHue?: number): AddFormState {
+  const hue        = randomHue ?? getColorHue(DEFAULT_COLOR);
   const sat        = saturation ?? getColorSaturation(DEFAULT_COLOR);
-  const withHueSat = setSaturation(setHue(DEFAULT_COLOR, randomHue), sat);
+  const withHueSat = setSaturation(setHue(DEFAULT_COLOR, hue), sat);
 
   let baseColor: string;
   let finalStep: number;
 
   if (anchorStep !== undefined) {
     const adjusted = adjustColorToStep(withHueSat, anchorStep);
-    baseColor = setSaturation(setHue(adjusted, randomHue), sat);
+    baseColor = setSaturation(setHue(adjusted, hue), sat);
     finalStep = anchorStep;
   } else {
     baseColor = withHueSat;
@@ -82,7 +82,7 @@ function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?:
   return {
     id:          uuid(),
     baseColor,
-    hue:         randomHue,
+    hue,
     saturation:  sat,
     anchorStep:  finalStep,
     name:        suggestName(baseColor),
@@ -325,6 +325,17 @@ export default function Home() {
   // Derived palettes list (for export, persistence, header)
   const palettes = items.filter((i): i is { kind: "palette"; data: Palette } => i.kind === "palette").map((i) => i.data);
 
+  // ── Randomize initial form hue on client after hydration ────────────────────
+  useEffect(() => {
+    setItems((prev) => prev.map((item) => {
+      if (item.kind !== "form") return item;
+      const randomHue = Math.floor(Math.random() * 360);
+      const updated = makeDefaultForm(stopCount, item.data.saturation, item.data.anchorStep, randomHue);
+      return { kind: "form", data: { ...updated, id: item.data.id } };
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Persistence ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const saved = loadInitialState();
@@ -384,7 +395,8 @@ export default function Home() {
 
   // ── Form management ──────────────────────────────────────────────────────────
   function handleAddForm() {
-    setItems((prev) => [...prev, { kind: "form", data: makeDefaultForm(stopCount, lastSaturation, lastAnchorStep) }]);
+    const randomHue = Math.floor(Math.random() * 360);
+    setItems((prev) => [...prev, { kind: "form", data: makeDefaultForm(stopCount, lastSaturation, lastAnchorStep, randomHue) }]);
   }
 
   function handleUpdateForm(id: string, patch: Partial<AddFormState>) {
