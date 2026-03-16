@@ -326,7 +326,7 @@ type Item =
 export default function Home() {
   const [items, setItems]             = useState<Item[]>(() => [{ kind: "form", data: makeDefaultForm(10) }]);
   const [stopCount]                   = useState<StopCount>(10);
-  const [darkMode, setDarkMode]       = useState(false);
+  const [darkMode, setDarkMode]       = useState(true);
   const [toast, setToast]             = useState<string | null>(null);
   const [exportOpen, setExportOpen]   = useState(false);
   const toastTimer                    = useRef<ReturnType<typeof setTimeout>>(undefined);
