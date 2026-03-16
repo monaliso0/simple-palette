@@ -102,8 +102,23 @@ export default function PaletteCard({
   }
 
   // ── View: row click copies hex ────────────────────────────────────────────
+  function execCopy(text: string) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand("copy"); } catch {}
+    document.body.removeChild(ta);
+  }
+
   function handleRowClick(hex: string) {
-    navigator.clipboard.writeText(hex).catch(() => {});
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(hex).catch(() => execCopy(hex));
+    } else {
+      execCopy(hex);
+    }
     onCopy(hex);
   }
 
