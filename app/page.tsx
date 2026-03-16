@@ -9,6 +9,7 @@ function uuid(): string {
     return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
   });
 }
+import Image from "next/image";
 import Header from "@/components/Header";
 import PaletteCard from "@/components/PaletteCard";
 import ExportModal from "@/components/ExportModal";
@@ -517,11 +518,17 @@ export default function Home() {
             }`}
             title="Add another color"
           >
-            <span className={`transition-colors ${darkMode ? "text-white/20 group-hover:text-white/50" : "text-black/30 group-hover:text-black/60"}`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-              </svg>
-            </span>
+            {darkMode ? (
+              <span className="opacity-20 group-hover:opacity-50 transition-opacity">
+                <Image src="/add-dark.svg" alt="Add color" width={24} height={24} />
+              </span>
+            ) : (
+              <span className={`transition-colors text-black/30 group-hover:text-black/60`}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+              </span>
+            )}
           </button>
 
         </div>

@@ -25,12 +25,12 @@ import type { Palette, StopCount, ColorStop } from "@/lib/types";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
-function IconTrash() {
-  return <Image src="/trash.svg" alt="Remove" width={24} height={24} />;
+function IconTrash({ dark }: { dark?: boolean }) {
+  return <Image src={dark ? "/trash-dark.svg" : "/trash.svg"} alt="Remove" width={24} height={24} />;
 }
 
-function IconFilter() {
-  return <Image src="/filter.svg" alt="Edit palette" width={24} height={24} />;
+function IconFilter({ dark }: { dark?: boolean }) {
+  return <Image src={dark ? "/filter-dark.svg" : "/filter.svg"} alt="Edit palette" width={24} height={24} />;
 }
 
 function IconCopy() {
@@ -466,14 +466,14 @@ export default function PaletteCard({
             className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
             title="Remove palette"
           >
-            <IconTrash />
+            <IconTrash dark={darkMode} />
           </button>
           <button
             onClick={enterEditMode}
             className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
             title="Edit palette"
           >
-            <IconFilter />
+            <IconFilter dark={darkMode} />
           </button>
         </div>
 
