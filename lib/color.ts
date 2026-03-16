@@ -283,16 +283,18 @@ export function suggestName(hex: string): string {
   }
 
   // Chromatic — OKLCH-calibrated hue ranges
-  if (h >= 340 || h < 40)  return l > 0.80 ? "Light Red"    : l < 0.30 ? "Dark Red"    : "Red";
-  if (h < 70)               return l > 0.80 ? "Light Orange" : l < 0.30 ? "Dark Orange" : "Orange";
-  if (h < 115)              return l > 0.88 ? "Light Yellow" : l < 0.30 ? "Dark Yellow" : "Yellow";
-  if (h < 140)              return l > 0.85 ? "Light Lime"   : l < 0.30 ? "Dark Lime"   : "Lime";
-  if (h < 175)              return l > 0.83 ? "Light Green"  : l < 0.30 ? "Dark Green"  : "Green";
-  if (h < 210)              return l > 0.83 ? "Light Teal"   : l < 0.30 ? "Dark Teal"   : "Teal";
-  if (h < 270)              return l > 0.83 ? "Light Blue"   : l < 0.30 ? "Dark Blue"   : "Blue";
-  if (h < 295)              return l > 0.83 ? "Light Indigo" : l < 0.30 ? "Dark Indigo" : "Indigo";
-  if (h < 325)              return l > 0.83 ? "Light Purple" : l < 0.30 ? "Dark Purple" : "Purple";
-  /* Pink 325–340 */        return l > 0.83 ? "Light Pink"   : l < 0.30 ? "Dark Pink"   : "Pink";
+  if (h >= 355 || h < 40)  return l > 0.80 ? "Light Red"     : l < 0.30 ? "Dark Red"     : "Red";
+  if (h < 70)               return l > 0.80 ? "Light Orange"  : l < 0.30 ? "Dark Orange"  : "Orange";
+  if (h < 115)              return l > 0.88 ? "Light Yellow"  : l < 0.30 ? "Dark Yellow"  : "Yellow";
+  if (h < 140)              return l > 0.85 ? "Light Lime"    : l < 0.30 ? "Dark Lime"    : "Lime";
+  if (h < 175)              return l > 0.83 ? "Light Green"   : l < 0.30 ? "Dark Green"   : "Green";
+  if (h < 200)              return l > 0.83 ? "Light Teal"    : l < 0.30 ? "Dark Teal"    : "Teal";
+  if (h < 235)              return l > 0.83 ? "Light Cyan"    : l < 0.30 ? "Dark Cyan"    : "Cyan";
+  if (h < 270)              return l > 0.83 ? "Light Blue"    : l < 0.30 ? "Dark Blue"    : "Blue";
+  if (h < 295)              return l > 0.83 ? "Light Indigo"  : l < 0.30 ? "Dark Indigo"  : "Indigo";
+  if (h < 325)              return l > 0.83 ? "Light Purple"  : l < 0.30 ? "Dark Purple"  : "Purple";
+  if (h < 335)              return l > 0.83 ? "Light Pink"    : l < 0.30 ? "Dark Pink"    : "Pink";
+  /* Magenta 335–355 */     return l > 0.83 ? "Light Magenta" : l < 0.30 ? "Dark Magenta" : "Magenta";
 }
 
 // ─── Neutral scale ────────────────────────────────────────────────────────────

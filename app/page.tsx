@@ -52,9 +52,10 @@ type AddFormState = {
   nameEditing: boolean;
   hexInput: string;
   hexError: boolean;
+  insertAt: number;
 };
 
-function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?: number): AddFormState {
+function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?: number, insertAt = 0): AddFormState {
   const randomHue  = Math.floor(Math.random() * 360);
   const sat        = saturation ?? getColorSaturation(DEFAULT_COLOR);
   const withHueSat = setSaturation(setHue(DEFAULT_COLOR, randomHue), sat);
@@ -81,6 +82,7 @@ function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?:
     nameEditing: false,
     hexInput:    baseColor,
     hexError:    false,
+    insertAt,
   };
 }
 
@@ -336,7 +338,13 @@ export default function Home() {
 
   // ── Palette actions ──────────────────────────────────────────────────────────
   function handleAddPalette(palette: Palette, formId: string, saturation: number) {
-    setPalettes((prev) => [...prev, palette]);
+    const form = addForms.find((f) => f.id === formId);
+    const insertAt = form?.insertAt ?? palettes.length;
+    setPalettes((prev) => {
+      const next = [...prev];
+      next.splice(insertAt, 0, palette);
+      return next;
+    });
     setAddForms((prev) => prev.filter((f) => f.id !== formId));
     setLastSaturation(saturation);
     setLastAnchorStep(palette.baseStep);
@@ -352,7 +360,7 @@ export default function Home() {
 
   // ── Form management ──────────────────────────────────────────────────────────
   function handleAddForm() {
-    setAddForms((prev) => [...prev, makeDefaultForm(stopCount, lastSaturation, lastAnchorStep)]);
+    setAddForms((prev) => [...prev, makeDefaultForm(stopCount, lastSaturation, lastAnchorStep, palettes.length)]);
   }
 
   function handleUpdateForm(id: string, patch: Partial<AddFormState>) {
