@@ -1,6 +1,14 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+
+function uuid(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
 import Header from "@/components/Header";
 import PaletteCard from "@/components/PaletteCard";
 import ExportModal from "@/components/ExportModal";
@@ -72,7 +80,7 @@ function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?:
   }
 
   return {
-    id:          crypto.randomUUID(),
+    id:          uuid(),
     baseColor,
     hue:         randomHue,
     saturation:  sat,
@@ -168,7 +176,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
     const stops   = generateScale(hex, stopCount, new Map(), form.anchorStep);
     const warning = detectEdgeCase(hex);
     onAdd({
-      id:        crypto.randomUUID(),
+      id:        uuid(),
       name:      form.name.trim() || suggestName(hex),
       type:      "custom",
       baseColor: hex,
