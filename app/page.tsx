@@ -52,10 +52,9 @@ type AddFormState = {
   nameEditing: boolean;
   hexInput: string;
   hexError: boolean;
-  insertAt: number;
 };
 
-function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?: number, insertAt = 0): AddFormState {
+function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?: number): AddFormState {
   const randomHue  = Math.floor(Math.random() * 360);
   const sat        = saturation ?? getColorSaturation(DEFAULT_COLOR);
   const withHueSat = setSaturation(setHue(DEFAULT_COLOR, randomHue), sat);
@@ -82,7 +81,6 @@ function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?:
     nameEditing: false,
     hexInput:    baseColor,
     hexError:    false,
-    insertAt,
   };
 }
 
@@ -140,7 +138,6 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
   }
 
   function handleSatSlider(newSat: number) {
-    // Re-apply current hue first so it's never lost when baseColor is gray
     const withHue = setHue(form.baseColor, form.hue);
     const newHex  = setSaturation(withHue, newSat);
     patch({
@@ -168,8 +165,8 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
   function handleAdd() {
     const hex = normalizeHex(form.hexInput);
     if (!isValidColor(hex)) return;
-    const stops    = generateScale(hex, stopCount, new Map(), form.anchorStep);
-    const warning  = detectEdgeCase(hex);
+    const stops   = generateScale(hex, stopCount, new Map(), form.anchorStep);
+    const warning = detectEdgeCase(hex);
     onAdd({
       id:        crypto.randomUUID(),
       name:      form.name.trim() || suggestName(hex),
@@ -181,9 +178,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
     }, form.saturation);
   }
 
-  const textColor = getSwatchTextColor(form.baseColor);
-
-  // Use a color with the stored hue as base (baseColor may be gray and lose hue)
+  const textColor    = getSwatchTextColor(form.baseColor);
   const colorWithHue = setHue(form.baseColor, form.hue);
   const hueGradient  = getHueGradient(getColorLightness(form.baseColor), form.saturation);
   const grayHex      = setSaturation(colorWithHue, 0);
@@ -244,7 +239,6 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
               />
             </div>
 
-            {/* Step badge — opens dropdown */}
             <StepBadge
               step={form.anchorStep}
               stopCount={stopCount}
@@ -255,7 +249,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
           </div>
         </div>
 
-        {/* Hue slider — value is display-offset (0=red) */}
+        {/* Hue slider */}
         <SliderRow
           label="Hue"
           value={(form.hue - HUE_START + 360) % 360}
@@ -298,36 +292,51 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
   );
 }
 
+// ─── Unified item type ────────────────────────────────────────────────────────
+
+type Item =
+  | { kind: "palette"; data: Palette }
+  | { kind: "form";    data: AddFormState };
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [palettes, setPalettes]   = useState<Palette[]>([]);
-  const [stopCount]               = useState<StopCount>(10);
-  const [toast, setToast]         = useState<string | null>(null);
-  const [exportOpen, setExportOpen] = useState(false);
-  const toastTimer                = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  // One form open on first load; user can cancel to leave only the + button
-  const [addForms, setAddForms]     = useState<AddFormState[]>(() => [makeDefaultForm(10)]);
+  const [items, setItems]             = useState<Item[]>(() => [{ kind: "form", data: makeDefaultForm(10) }]);
+  const [stopCount]                   = useState<StopCount>(10);
+  const [toast, setToast]             = useState<string | null>(null);
+  const [exportOpen, setExportOpen]   = useState(false);
+  const toastTimer                    = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [lastSaturation, setLastSaturation] = useState<number>(getColorSaturation(DEFAULT_COLOR));
   const [lastAnchorStep, setLastAnchorStep] = useState<number | undefined>(undefined);
 
   // Drag state
-  const [dragId, setDragId]       = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dragId, setDragId]           = useState<string | null>(null);
+  const [dragOverId, setDragOverId]   = useState<string | null>(null);
+
+  // Derived palettes list (for export, persistence, header)
+  const palettes = items.filter((i): i is { kind: "palette"; data: Palette } => i.kind === "palette").map((i) => i.data);
 
   // ── Persistence ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const saved = loadInitialState();
     if (saved?.palettes.length) {
-      setPalettes(saved.palettes);
+      setItems((prev) => {
+        const forms = prev.filter((i) => i.kind === "form");
+        return [
+          ...saved.palettes.map((p) => ({ kind: "palette" as const, data: p })),
+          ...forms,
+        ];
+      });
     }
   }, []);
 
   useEffect(() => {
-    saveToStorage({ palettes, stopCount });
-    saveToURL({ palettes, stopCount });
-  }, [palettes, stopCount]);
+    const pals = items
+      .filter((i): i is { kind: "palette"; data: Palette } => i.kind === "palette")
+      .map((i) => i.data);
+    saveToStorage({ palettes: pals, stopCount });
+    saveToURL({ palettes: pals, stopCount });
+  }, [items, stopCount]);
 
   // ── Toast ────────────────────────────────────────────────────────────────────
   const showToast = useCallback((hex: string) => {
@@ -338,43 +347,49 @@ export default function Home() {
 
   // ── Palette actions ──────────────────────────────────────────────────────────
   function handleAddPalette(palette: Palette, formId: string, saturation: number) {
-    const form = addForms.find((f) => f.id === formId);
-    const insertAt = form?.insertAt ?? palettes.length;
-    setPalettes((prev) => {
-      const next = [...prev];
-      next.splice(insertAt, 0, palette);
-      return next;
-    });
-    setAddForms((prev) => prev.filter((f) => f.id !== formId));
+    // Replace the form in-place with the new palette card
+    setItems((prev) => prev.map((item) =>
+      item.kind === "form" && item.data.id === formId
+        ? { kind: "palette", data: palette }
+        : item
+    ));
     setLastSaturation(saturation);
     setLastAnchorStep(palette.baseStep);
   }
 
   function handleUpdate(id: string, updates: Partial<Palette>) {
-    setPalettes((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+    setItems((prev) => prev.map((item) =>
+      item.kind === "palette" && item.data.id === id
+        ? { ...item, data: { ...item.data, ...updates } }
+        : item
+    ));
   }
 
   function handleRemove(id: string) {
-    setPalettes((prev) => prev.filter((p) => p.id !== id));
+    setItems((prev) => prev.filter((item) =>
+      !(item.kind === "palette" && item.data.id === id)
+    ));
   }
 
   // ── Form management ──────────────────────────────────────────────────────────
   function handleAddForm() {
-    setAddForms((prev) => [...prev, makeDefaultForm(stopCount, lastSaturation, lastAnchorStep, palettes.length)]);
+    setItems((prev) => [...prev, { kind: "form", data: makeDefaultForm(stopCount, lastSaturation, lastAnchorStep) }]);
   }
 
   function handleUpdateForm(id: string, patch: Partial<AddFormState>) {
-    setAddForms((prev) => prev.map((f) => f.id === id ? { ...f, ...patch } : f));
-    if (patch.saturation !== undefined) {
-      setLastSaturation(patch.saturation);
-    }
-    if (patch.anchorStep !== undefined) {
-      setLastAnchorStep(patch.anchorStep);
-    }
+    setItems((prev) => prev.map((item) =>
+      item.kind === "form" && item.data.id === id
+        ? { ...item, data: { ...item.data, ...patch } }
+        : item
+    ));
+    if (patch.saturation !== undefined) setLastSaturation(patch.saturation);
+    if (patch.anchorStep !== undefined) setLastAnchorStep(patch.anchorStep);
   }
 
   function handleCancelForm(id: string) {
-    setAddForms((prev) => prev.filter((f) => f.id !== id));
+    setItems((prev) => prev.filter((item) =>
+      !(item.kind === "form" && item.data.id === id)
+    ));
   }
 
   // ── Drag-and-drop ────────────────────────────────────────────────────────────
@@ -387,9 +402,9 @@ export default function Home() {
 
   function handleDrop(targetId: string) {
     if (!dragId || dragId === targetId) return;
-    setPalettes((prev) => {
-      const fromIdx = prev.findIndex((p) => p.id === dragId);
-      const toIdx   = prev.findIndex((p) => p.id === targetId);
+    setItems((prev) => {
+      const fromIdx = prev.findIndex((i) => i.kind === "palette" && i.data.id === dragId);
+      const toIdx   = prev.findIndex((i) => i.kind === "palette" && i.data.id === targetId);
       if (fromIdx < 0 || toIdx < 0) return prev;
       const next = [...prev];
       const [item] = next.splice(fromIdx, 1);
@@ -412,35 +427,33 @@ export default function Home() {
       <main className="pt-[96px] min-h-screen">
         <div className="flex gap-5 px-10 py-10 overflow-x-auto min-h-[calc(100vh-96px)] items-start">
 
-          {/* Finalized palette cards */}
-          {palettes.map((palette) => (
-            <PaletteCard
-              key={palette.id}
-              palette={palette}
-              stopCount={stopCount}
-              onUpdate={handleUpdate}
-              onRemove={handleRemove}
-              onCopy={showToast}
-              draggable
-              onDragStart={() => handleDragStart(palette.id)}
-              onDragOver={(e) => handleDragOver(e, palette.id)}
-              onDrop={() => handleDrop(palette.id)}
-              onDragEnd={handleDragEnd}
-              isDragOver={dragOverId === palette.id}
-            />
-          ))}
-
-          {/* Open add forms */}
-          {addForms.map((form) => (
-            <AddCard
-              key={form.id}
-              form={form}
-              stopCount={stopCount}
-              onUpdate={handleUpdateForm}
-              onAdd={(palette, sat) => handleAddPalette(palette, form.id, sat)}
-              onCancel={handleCancelForm}
-            />
-          ))}
+          {items.map((item) =>
+            item.kind === "palette" ? (
+              <PaletteCard
+                key={item.data.id}
+                palette={item.data}
+                stopCount={stopCount}
+                onUpdate={handleUpdate}
+                onRemove={handleRemove}
+                onCopy={showToast}
+                draggable
+                onDragStart={() => handleDragStart(item.data.id)}
+                onDragOver={(e) => handleDragOver(e, item.data.id)}
+                onDrop={() => handleDrop(item.data.id)}
+                onDragEnd={handleDragEnd}
+                isDragOver={dragOverId === item.data.id}
+              />
+            ) : (
+              <AddCard
+                key={item.data.id}
+                form={item.data}
+                stopCount={stopCount}
+                onUpdate={handleUpdateForm}
+                onAdd={(palette, sat) => handleAddPalette(palette, item.data.id, sat)}
+                onCancel={handleCancelForm}
+              />
+            )
+          )}
 
           {/* + button — always visible */}
           <button
