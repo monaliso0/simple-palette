@@ -6,6 +6,7 @@ type SliderRowProps = {
   step?: number;
   sliderClass: string;
   sliderStyle?: React.CSSProperties;
+  darkMode?: boolean;
   onChange: (v: number) => void;
 };
 
@@ -17,12 +18,13 @@ export default function SliderRow({
   step = 1,
   sliderClass,
   sliderStyle,
+  darkMode,
   onChange,
 }: SliderRowProps) {
   return (
-    <div className="bg-[#F3F3F3] rounded-xl p-3 flex flex-col gap-0">
+    <div className={`rounded-xl p-3 flex flex-col gap-0 ${darkMode ? "bg-[#1A1A1A]" : "bg-[#F3F3F3]"}`}>
       <div className="flex items-center justify-between">
-        <span className="text-[14px] text-black/50 font-normal">{label}</span>
+        <span className={`text-[14px] font-normal ${darkMode ? "text-white/50" : "text-black/50"}`}>{label}</span>
         <span className="text-[14px] font-medium text-black bg-white/90 rounded px-2 h-6 flex items-center tabular-nums">
           {Math.round(value)}
         </span>

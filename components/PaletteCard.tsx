@@ -238,12 +238,13 @@ export default function PaletteCard({
     const grayHex      = setSaturation(colorWithHue, 0);
     const fullSatHex   = setSaturation(colorWithHue, 100);
     const satGradient  = `linear-gradient(90deg, ${grayHex} 0%, ${fullSatHex} 100%)`;
+    const editCardBorder = darkMode ? "border-[#2c2c2c]" : "border-[#E7E7E7]";
 
     return (
       <div className="flex-shrink-0 w-[320px] flex flex-col gap-2">
 
         {/* Editor card */}
-        <div className="border border-[#E7E7E7] rounded-3xl p-3 flex flex-col gap-2">
+        <div className={`border ${editCardBorder} rounded-3xl p-3 flex flex-col gap-2`}>
 
           {/* Color preview */}
           <div
@@ -316,6 +317,7 @@ export default function PaletteCard({
             max={359}
             sliderClass="hue-slider"
             sliderStyle={{ background: hueGradient }}
+            darkMode={darkMode}
             onChange={handleEditHue}
           />
 
@@ -327,6 +329,7 @@ export default function PaletteCard({
             max={100}
             sliderClass="sat-slider"
             sliderStyle={{ background: satGradient }}
+            darkMode={darkMode}
             onChange={handleEditSat}
           />
         </div>
@@ -335,13 +338,21 @@ export default function PaletteCard({
         <div className="flex gap-2 items-center">
           <button
             onClick={handleCancelEdit}
-            className="h-[48px] w-[156px] flex-shrink-0 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] hover:bg-[#E7E7E7] transition-colors"
+            className={`h-[48px] w-[156px] flex-shrink-0 rounded-2xl text-[16px] font-medium tracking-[-0.32px] transition-colors ${
+              darkMode
+                ? "bg-[#1a1a1a] text-white hover:bg-[#2a2a2a]"
+                : "bg-[#F1F1F1] text-black hover:bg-[#E7E7E7]"
+            }`}
           >
             Cancelar
           </button>
           <button
             onClick={handleUpdate}
-            className="flex-1 h-[48px] rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors"
+            className={`flex-1 h-[48px] rounded-2xl text-[16px] font-medium tracking-[-0.32px] transition-colors ${
+              darkMode
+                ? "bg-white text-black hover:bg-[#E0E0E0]"
+                : "bg-black text-white hover:bg-[#222]"
+            }`}
           >
             Atualizar
           </button>
@@ -401,6 +412,8 @@ export default function PaletteCard({
     );
   }
 
+  const activeStops = darkMode ? (palette.darkStops ?? palette.stops) : palette.stops;
+
   // ─────────────────────────────────────────────────────────────────────────
   // VIEW MODE render
   // ─────────────────────────────────────────────────────────────────────────
@@ -412,18 +425,17 @@ export default function PaletteCard({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={`
-        flex-shrink-0 flex gap-2
+        flex-shrink-0
         cursor-grab active:cursor-grabbing select-none transition-all
         ${isDragOver ? "opacity-70 scale-[0.98]" : ""}
       `}
     >
-      {/* ── Light column ───────────────────────────────────────────────── */}
       <div className={`w-[320px] border ${cardBorder} ${cardHover} rounded-3xl p-3 flex flex-col gap-3 transition-colors`}>
 
         {/* Header */}
         <div className="flex items-center gap-2 h-[56px] px-1">
 
-          <div className="flex-1 min-w-0 flex items-center gap-2">
+          <div className="flex-1 min-w-0">
             {isEditingName ? (
               <input
                 ref={nameRef}
@@ -436,20 +448,17 @@ export default function PaletteCard({
                   if (e.key === "Escape") { setIsEditingName(false); setNameInput(palette.name); }
                 }}
                 autoFocus
-                className={`flex-1 min-w-0 bg-transparent text-[20px] font-normal tracking-[-0.7px] ${nameColor} outline-none border-b ${inputBorder} pb-0.5`}
+                className={`w-full bg-transparent text-[20px] font-normal tracking-[-0.7px] ${nameColor} outline-none border-b ${inputBorder} pb-0.5`}
               />
             ) : (
               <button
                 onClick={() => { setIsEditingName(true); setTimeout(() => nameRef.current?.select(), 0); }}
-                className={`flex-1 min-w-0 text-left text-[20px] font-normal tracking-[-0.7px] ${nameColor} truncate cursor-text hover:underline underline-offset-2`}
+                className={`w-full text-left text-[20px] font-normal tracking-[-0.7px] ${nameColor} truncate cursor-text hover:underline underline-offset-2`}
                 title="Click to rename"
               >
                 {palette.name}
               </button>
             )}
-            <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md ${darkMode ? "bg-white/10 text-white/40" : "bg-black/5 text-black/35"}`}>
-              Light
-            </span>
           </div>
 
           <button
@@ -468,43 +477,8 @@ export default function PaletteCard({
           </button>
         </div>
 
-        <StopRows stops={palette.stops} baseStep={palette.baseStep} />
+        <StopRows stops={activeStops} baseStep={palette.baseStep} />
       </div>
-
-      {/* ── Dark column ────────────────────────────────────────────────── */}
-      {palette.darkStops?.length > 0 && (
-        <div className={`w-[320px] border ${cardBorder} ${cardHover} rounded-3xl p-3 flex flex-col gap-3 transition-colors`}>
-
-          {/* Header */}
-          <div className="flex items-center gap-2 h-[56px] px-1">
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <span className={`text-[20px] font-normal tracking-[-0.7px] ${nameColor} truncate`}>
-                {palette.name}
-              </span>
-              <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md ${darkMode ? "bg-white/10 text-white/40" : "bg-black/5 text-black/35"}`}>
-                Dark
-              </span>
-            </div>
-
-            <button
-              onClick={() => onRemove(palette.id)}
-              className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
-              title="Remove palette"
-            >
-              <IconTrash />
-            </button>
-            <button
-              onClick={enterEditMode}
-              className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl ${iconHoverBg} transition-colors`}
-              title="Edit palette"
-            >
-              <IconFilter />
-            </button>
-          </div>
-
-          <StopRows stops={palette.darkStops} baseStep={palette.baseStep} />
-        </div>
-      )}
     </div>
   );
 }

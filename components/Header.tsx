@@ -26,7 +26,7 @@ export default function Header({ hasPalettes, darkMode, onToggleDark, onExport }
       {/* Logo */}
       <div className="flex items-center gap-3">
         <Image
-          src="/logo.svg"
+          src={darkMode ? "/logo-dark.svg" : "/logo.svg"}
           alt="Simple Palette logo"
           width={336}
           height={140}

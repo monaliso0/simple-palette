@@ -96,12 +96,13 @@ function makeDefaultForm(stopCount: StopCount, saturation?: number, anchorStep?:
 type AddCardProps = {
   form: AddFormState;
   stopCount: StopCount;
+  darkMode: boolean;
   onUpdate: (id: string, patch: Partial<AddFormState>) => void;
   onAdd: (palette: Palette, saturation: number) => void;
   onCancel: (id: string) => void;
 };
 
-function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
+function AddCard({ form, stopCount, darkMode, onUpdate, onAdd, onCancel }: AddCardProps) {
   const nameRef = useRef<HTMLInputElement>(null);
 
   function patch(p: Partial<AddFormState>) {
@@ -200,7 +201,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
     <div className="flex-shrink-0 w-[320px] flex flex-col gap-2">
 
       {/* ── Editor card ─────────────────────────────────────────────── */}
-      <div className="border border-[#E7E7E7] rounded-3xl p-3 flex flex-col gap-2">
+      <div className={`border ${darkMode ? "border-[#2c2c2c]" : "border-[#E7E7E7]"} rounded-3xl p-3 flex flex-col gap-2`}>
 
         {/* Color preview */}
         <div
@@ -268,6 +269,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
           max={359}
           sliderClass="hue-slider"
           sliderStyle={{ background: hueGradient }}
+          darkMode={darkMode}
           onChange={handleHueSlider}
         />
 
@@ -279,6 +281,7 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
           max={100}
           sliderClass="sat-slider"
           sliderStyle={{ background: satGradient }}
+          darkMode={darkMode}
           onChange={handleSatSlider}
         />
       </div>
@@ -287,14 +290,22 @@ function AddCard({ form, stopCount, onUpdate, onAdd, onCancel }: AddCardProps) {
       <div className="flex gap-2 items-center">
         <button
           onClick={() => onCancel(form.id)}
-          className="h-[48px] w-[156px] flex-shrink-0 rounded-2xl bg-[#F1F1F1] text-black text-[16px] font-medium tracking-[-0.32px] hover:bg-[#E7E7E7] transition-colors"
+          className={`h-[48px] w-[156px] flex-shrink-0 rounded-2xl text-[16px] font-medium tracking-[-0.32px] transition-colors ${
+            darkMode
+              ? "bg-[#1a1a1a] text-white hover:bg-[#2a2a2a]"
+              : "bg-[#F1F1F1] text-black hover:bg-[#E7E7E7]"
+          }`}
         >
           Cancelar
         </button>
         <button
           onClick={handleAdd}
           disabled={form.hexError || !form.hexInput}
-          className="flex-1 h-[48px] rounded-2xl bg-black text-white text-[16px] font-medium tracking-[-0.32px] hover:bg-[#222] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className={`flex-1 h-[48px] rounded-2xl text-[16px] font-medium tracking-[-0.32px] transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+            darkMode
+              ? "bg-white text-black hover:bg-[#E0E0E0]"
+              : "bg-black text-white hover:bg-[#222]"
+          }`}
         >
           Adicionar
         </button>
@@ -488,6 +499,7 @@ export default function Home() {
                 key={item.data.id}
                 form={item.data}
                 stopCount={stopCount}
+                darkMode={darkMode}
                 onUpdate={handleUpdateForm}
                 onAdd={(palette, sat) => handleAddPalette(palette, item.data.id, sat)}
                 onCancel={handleCancelForm}
