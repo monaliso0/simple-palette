@@ -314,6 +314,7 @@ export default function Home() {
   const [toast, setToast]             = useState<string | null>(null);
   const [exportOpen, setExportOpen]   = useState(false);
   const toastTimer                    = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const urlTimer                      = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [lastSaturation, setLastSaturation] = useState<number>(getColorSaturation(DEFAULT_COLOR));
   const [lastAnchorStep, setLastAnchorStep] = useState<number | undefined>(undefined);
 
@@ -343,7 +344,9 @@ export default function Home() {
       .filter((i): i is { kind: "palette"; data: Palette } => i.kind === "palette")
       .map((i) => i.data);
     saveToStorage({ palettes: pals, stopCount });
-    saveToURL({ palettes: pals, stopCount });
+    // Debounce URL saves — Safari blocks history.replaceState() if called > 100x per 10s
+    clearTimeout(urlTimer.current);
+    urlTimer.current = setTimeout(() => saveToURL({ palettes: pals, stopCount }), 600);
   }, [items, stopCount]);
 
   // ── Toast ────────────────────────────────────────────────────────────────────
