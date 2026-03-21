@@ -451,11 +451,14 @@ export function getHueGradient(l: number, saturation: number): string {
 /**
  * Generates a dark-mode optimized color scale from a base hex.
  *
- * Dark backgrounds reduce perceived saturation (simultaneous contrast effect).
- * This scale boosts chroma for stops near the anchor (±2 positions) so the
- * mid-range tones remain vivid and visually weighted against dark surfaces.
- * Light extremes (50–300) and dark extremes (700–900) stay nearly identical
- * to the light scale since they're used as tints/surfaces, not accents.
+ * Semantic convention: in a design system, token 50 always means "background/subtle".
+ * In light mode that's the lightest color; in dark mode it must be the darkest —
+ * because dark interfaces use low tokens (50, 100) for dark surfaces.
+ *
+ * Strategy:
+ * 1. Generate the full light scale (all lightness values)
+ * 2. Boost chroma ±2 stops around the anchor (dark bg reduces perceived saturation)
+ * 3. Invert the index mapping: token 50 ← darkest color, token 900 ← lightest color
  *
  * Boost amounts:  anchor ±0 = +30%,  ±1 = +20%,  ±2 = +10%
  */
@@ -478,7 +481,8 @@ export function generateDarkScale(
     : findAnchorStep(base.l ?? 0.595, stops);
   const anchorIdx = stops.indexOf(anchorStep);
 
-  return lightStops.map((stop) => {
+  // Step 1: apply chroma boost for mid-range stops
+  const boostedStops = lightStops.map((stop) => {
     if (lockedStops.has(stop.step)) return stop;
 
     const stopIdx = stops.indexOf(stop.step);
@@ -492,9 +496,17 @@ export function generateDarkScale(
     const sc = oklch(sp);
     if (!sc || sc.h === undefined) return stop;
 
-    const boosted    = clampChroma({ mode: "oklch", l: sc.l ?? 0.5, c: (sc.c ?? 0) * boost, h: sc.h }, "oklch");
-    const newHex     = formatHex(boosted) ?? stop.hex;
+    const boosted = clampChroma({ mode: "oklch", l: sc.l ?? 0.5, c: (sc.c ?? 0) * boost, h: sc.h }, "oklch");
+    const newHex  = formatHex(boosted) ?? stop.hex;
     return { step: stop.step, hex: newHex, isLocked: false, contrast: calcContrast(newHex) };
+  });
+
+  // Step 2: invert the scale so token 50 = darkest (dark surface) and 900 = lightest.
+  // This matches design system semantics: low tokens = background/subtle, regardless of mode.
+  const n = stops.length;
+  return boostedStops.map((_, i) => {
+    const mirror = boostedStops[n - 1 - i];
+    return { step: stops[i], hex: mirror.hex, isLocked: mirror.isLocked, contrast: mirror.contrast };
   });
 }
 
