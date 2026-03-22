@@ -28,8 +28,8 @@ export default function Header({ hasPalettes, darkMode, onToggleDark, onExport }
         <Image
           src={darkMode ? "/logo-dark.svg" : "/logo.svg"}
           alt="Simple Palette logo"
-          width={587}
-          height={251}
+          width={120}
+          height={50}
           priority
           className="h-14 w-auto"
         />
