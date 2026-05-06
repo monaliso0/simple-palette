@@ -51,15 +51,19 @@ export default function Header({ hasPalettes, darkMode, onToggleDark, onExport }
           {darkMode ? <IconSun /> : <IconMoon />}
         </button>
 
-        {/* Figma Plugin — link will be added after approval */}
-        <button
-          disabled
-          className={`h-[48px] px-4 rounded-2xl text-[16px] font-medium tracking-[-0.32px] opacity-50 cursor-not-allowed ${
-            darkMode ? "bg-[#1C1C1C] text-white" : "bg-[#F1F1F1] text-black"
+        {/* Figma Plugin */}
+        <a
+          href="https://www.figma.com/community/plugin/1615220891344551103/simple-palette"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`h-[48px] px-4 inline-flex items-center rounded-2xl text-[16px] font-medium tracking-[-0.32px] transition-colors ${
+            darkMode
+              ? "bg-[#1C1C1C] text-white hover:bg-[#2A2A2A]"
+              : "bg-[#F1F1F1] text-black hover:bg-[#E4E4E4]"
           }`}
         >
           Figma Plugin
-        </button>
+        </a>
 
         {/* Export */}
         <button
